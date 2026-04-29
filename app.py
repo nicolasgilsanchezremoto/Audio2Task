@@ -47,6 +47,7 @@ st.markdown("<h1 class='header-text'>🎙️ AUDIO2TASK PRO ELITE</h1>", unsafe_
 
 # --- FUNCIONES TÉCNICAS ---
 def limpiar_para_pdf(texto):
+    # Elimina caracteres que rompen el PDF y emojis
     texto_limpio = texto.encode('ascii', 'ignore').decode('ascii')
     return texto_limpio.replace('###', '').replace('**', '').replace('|', ' ')
 
@@ -59,7 +60,6 @@ def convertir_a_wav(archivo_entrada):
 def transcribir_por_partes(ruta_wav):
     r = sr.Recognizer()
     audio = AudioSegment.from_wav(ruta_wav)
-    # Trozos de 60 segundos para no bloquear el sistema gratuito
     duracion_ms = 60 * 1000 
     chunks = [audio[i:i + duracion_ms] for i in range(0, len(audio), duracion_ms)]
     texto_completo = ""
@@ -75,6 +75,7 @@ def transcribir_por_partes(ruta_wav):
     return texto_completo
 
 # --- INTERFAZ ---
+# Usamos st.secrets para mayor seguridad en la web
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 with st.sidebar:
@@ -98,7 +99,7 @@ with col_izq:
 
 if 'transcripcion' in st.session_state:
     with col_der:
-        # Aquí empieza el cuadro iluminado
+        # INICIO DEL CONTENEDOR ILUMINADO
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
         
         st.subheader("📝 Transcripción Detectada")
@@ -106,7 +107,7 @@ if 'transcripcion' in st.session_state:
         
         st.markdown("---")
         
-        # Llamada a la IA
+        # LLAMADA A LA IA
         prompt = f"Resume esta reunión y haz una tabla de tareas (Responsable, Tarea, Fecha, Prioridad): {st.session_state['transcripcion']}. Hoy es 28 de Abril 2026."
         res = client.chat.completions.create(messages=[{"role":"user","content":prompt}], model="llama-3.3-70b-versatile")
         analisis = res.choices[0].message.content
@@ -114,21 +115,27 @@ if 'transcripcion' in st.session_state:
         st.subheader("📋 Plan de Acción")
         st.markdown(analisis)
         
-        st.markdown('</div>', unsafe_allow_html=True) # Aquí termina el cuadro iluminado
+        st.markdown('</div>', unsafe_allow_html=True) 
+        # FIN DEL CONTENEDOR ILUMINADO
         
         # Lector de voz inclusivo
         if hablar:
             gTTS(analisis.replace("|",""), lang='es').save("voz.mp3")
             st.audio("voz.mp3")
 
-        # Botón PDF (Corregido sin st.ln)
+        # SECCIÓN DE DESCARGA (SIN ERRORES)
+        st.write("") # Espacio correcto en Streamlit
+        
         try:
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=10)
-            pdf.multi_cell(0, 10, txt=limpiar_para_pdf(analisis))
+            # El texto del PDF debe estar limpio de caracteres extraños
+            texto_pdf = limpiar_para_pdf(analisis)
+            pdf.multi_cell(0, 10, txt=texto_pdf)
             pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
-            st.write("") # Espacio en blanco correcto
+            
             st.download_button("📥 Descargar Acta PDF", pdf_bytes, "Acta_Reunion.pdf", "application/pdf")
-        except:
+        except Exception as e:
+            # Si el PDF falla por algún caracter, damos la opción de texto plano
             st.download_button("📥 Descargar Respaldo (Texto)", analisis, "Acta.txt")
