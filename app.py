@@ -8,128 +8,141 @@ from pydub import AudioSegment
 from gtts import gTTS
 import re
 
-# 1. Configuración y Estilo Animado (MODO ELITE)
-st.set_page_config(page_title="Audio2Task Pro Elite", page_icon="🚀", layout="wide")
+# 1. Configuración de Pantalla y Temas Personalizados
+st.set_page_config(page_title="Audio2Task Ultimate", page_icon="🏢", layout="wide")
 
-st.markdown("""
+# Selector de Tema en la barra lateral
+with st.sidebar:
+    st.header("🎨 Personalización")
+    tema = st.selectbox("Elige el ambiente:", ["Oficina Nocturna", "Modo Beige"])
+    idioma_audio = st.selectbox("Idioma del audio:", ["es-ES", "en-US", "fr-FR", "de-DE", "it-IT", "pt-BR"])
+
+# Definición de Colores según el Tema
+if tema == "Oficina Nocturna":
+    bg_color = "rgba(30, 30, 47, 0.85)"
+    text_color = "#ffffff"
+    container_bg = "rgba(255, 255, 255, 0.05)"
+else:
+    bg_color = "rgba(245, 245, 220, 0.9)"
+    text_color = "#2d3436"
+    container_bg = "rgba(0, 0, 0, 0.05)"
+
+# Estilo CSS Avanzado con Imagen de Fondo
+st.markdown(f"""
     <style>
-    .main {
-        background: linear-gradient(135deg, #1e1e2f 0%, #2d3436 100%);
-        color: #ffffff;
-    }
-    .stButton>button {
-        background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-        border: none; color: white; font-weight: bold;
-        border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .report-container {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        padding: 25px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-        color: white;
-    }
-    .header-text {
+    .stApp {{
+        background-image: url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069");
+        background-attachment: fixed;
+        background-size: cover;
+    }}
+    .main {{
+        background-color: {bg_color};
+        color: {text_color};
+        padding: 20px;
+        border-radius: 15px;
+    }}
+    .report-container {{
+        background: {container_bg};
+        backdrop-filter: blur(15px);
+        padding: 30px;
+        border-radius: 25px;
+        border: 1px solid rgba(255,255,255,0.2);
+        color: {text_color};
+    }}
+    .header-text {{
         text-align: center;
-        background: -webkit-linear-gradient(#00d2ff, #3a7bd5);
+        background: linear-gradient(90deg, #00d2ff, #3a7bd5);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        font-size: 3em;
         font-weight: 900;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado del Autor
-st.markdown("<h3 style='text-align: center; color: #00d2ff; margin-bottom: 0;'>Sistema desarrollado por el aprendiz del tecnólogo ADSO</h3>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: center; color: #ffffff; margin-top: 0;'>Nicolas Gil Sanchez | Ficha 3312447</h4>", unsafe_allow_html=True)
-st.markdown("<h1 class='header-text'>🎙️ AUDIO2TASK PRO ELITE</h1>", unsafe_allow_html=True)
+# Encabezado ADSO
+st.markdown("<h3 style='text-align: center; color: #00d2ff;'>Sistema desarrollado por el aprendiz del tecnólogo ADSO</h3>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: gray;'>Nicolas Gil Sanchez | Ficha 3312447</h4>", unsafe_allow_html=True)
+st.markdown("<h1 class='header-text'>🏢 AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
 
-# --- FUNCIONES TÉCNICAS ---
-def limpiar_para_pdf(texto):
-    # Elimina caracteres que rompen el PDF y emojis
-    texto_limpio = texto.encode('ascii', 'ignore').decode('ascii')
-    return texto_limpio.replace('###', '').replace('**', '').replace('|', ' ')
-
-def convertir_a_wav(archivo_entrada):
-    # pydub detecta automáticamente si es mp3, wav, m4a o mp4
-    audio = AudioSegment.from_file(archivo_entrada)
-    ruta_temporal = "temp_audio_pro.wav"
-    audio.export(ruta_temporal, format="wav")
-    return ruta_temporal
-
-def transcribir_por_partes(ruta_wav):
+# --- FUNCIONES TÉCNICAS MEJORADAS ---
+def transcribir_avanzado(archivo, lang):
+    audio = AudioSegment.from_file(archivo)
+    ruta_wav = "temp_full.wav"
+    audio.export(ruta_wav, format="wav")
+    
     r = sr.Recognizer()
-    audio = AudioSegment.from_wav(ruta_wav)
-    duracion_ms = 60 * 1000 
-    chunks = [audio[i:i + duracion_ms] for i in range(0, len(audio), duracion_ms)]
-    texto_completo = ""
-    barra_progreso = st.progress(0)
+    audio_wav = AudioSegment.from_wav(ruta_wav)
+    # Fragmentación para mayor precisión
+    duracion_ms = 45 * 1000 
+    chunks = [audio_wav[i:i + duracion_ms] for i in range(0, len(audio_wav), duracion_ms)]
+    texto_final = ""
+    
+    progreso = st.progress(0)
     for idx, chunk in enumerate(chunks):
         chunk.export("chunk.wav", format="wav")
         with sr.AudioFile("chunk.wav") as source:
             data = r.record(source)
             try:
-                texto_completo += r.recognize_google(data, language="es-ES") + " "
+                # Usa el idioma seleccionado
+                texto_final += r.recognize_google(data, language=lang) + " "
             except: pass
-        barra_progreso.progress((idx + 1) / len(chunks))
-    return texto_completo
+        progreso.progress((idx + 1) / len(chunks))
+    return texto_final
 
-# --- INTERFAZ ---
+# --- INTERFAZ DE USUARIO ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 with st.sidebar:
     st.header("♿ Accesibilidad")
-    tamano = st.radio("Tamaño de letra:", ["Normal", "Grande", "Extra Grande"])
-    hablar = st.checkbox("Lector de voz (Inclusivo)")
-    font_size = "18px" if tamano == "Normal" else "24px" if tamano == "Grande" else "32px"
-    st.markdown(f"<style>p, span, li {{ font-size: {font_size} !important; }}</style>", unsafe_allow_html=True)
+    tamano = st.radio("Lectura:", ["Normal", "Grande"])
+    hablar = st.checkbox("Activar Narrador IA")
+    f_size = "22px" if tamano == "Grande" else "18px"
+    st.markdown(f"<style>p, li, span {{ font-size: {f_size} !important; }}</style>", unsafe_allow_html=True)
 
-col_izq, col_der = st.columns([1, 1.5])
+col1, col2 = st.columns([1, 1.5])
 
-with col_izq:
-    st.subheader("📁 Cargar Reunión")
-    # Agregamos "mp4" a los tipos aceptados
-    archivo = st.file_uploader("Sube audio o video (MP3, WAV, M4A, MP4)", type=["mp3", "wav", "m4a", "mp4"])
+with col1:
+    st.subheader("📂 Entrada de Medios")
+    archivo = st.file_uploader("Sube cualquier formato (MP3, WAV, MP4, M4A)", type=["mp3", "wav", "m4a", "mp4"])
     if archivo:
         st.audio(archivo)
-        if st.button("🚀 INICIAR ANÁLISIS"):
-            with st.spinner("Procesando inteligencia artificial..."):
-                ruta = convertir_a_wav(archivo)
-                st.session_state['transcripcion'] = transcribir_por_partes(ruta)
+        if st.button("🚀 INICIAR PROCESAMIENTO"):
+            with st.spinner(f"Analizando audio en {idioma_audio}..."):
+                st.session_state['texto'] = transcribir_avanzado(archivo, idioma_audio)
 
-if 'transcripcion' in st.session_state:
-    with col_der:
+if 'texto' in st.session_state:
+    with col2:
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
+        st.subheader("📋 Resultados del Análisis Inteligente")
         
-        st.subheader("📝 Transcripción Detectada")
-        st.write(st.session_state['transcripcion'])
+        # Petición de IA Multi-función
+        prompt_pro = f"""
+        Actúa como un Consultor de Negocios Senior. Analiza este texto: '{st.session_state['texto']}'
+        1. TRANSCRIPCIÓN LIMPIA (Corrige errores gramaticales).
+        2. RESUMEN EJECUTIVO (Puntos clave).
+        3. TABLA DE TAREAS (Responsable, Tarea, Fecha, Prioridad).
+        4. DECISIONES TOMADAS (Lista de acuerdos finales).
+        5. ANÁLISIS DE SENTIMIENTO (¿Cómo fue el tono de la reunión?).
+        Idiomas: Responde en el mismo idioma que el texto original.
+        """
         
-        st.markdown("---")
+        res = client.chat.completions.create(messages=[{"role":"user","content":prompt_pro}], model="llama-3.3-70b-versatile")
+        analisis_completo = res.choices[0].message.content
+        st.markdown(analisis_completo)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        prompt = f"Resume esta reunión y haz una tabla de tareas (Responsable, Tarea, Fecha, Prioridad): {st.session_state['transcripcion']}. Hoy es 28 de Abril 2026."
-        res = client.chat.completions.create(messages=[{"role":"user","content":prompt}], model="llama-3.3-70b-versatile")
-        analisis = res.choices[0].message.content
-        
-        st.subheader("📋 Plan de Acción")
-        st.markdown(analisis)
-        
-        st.markdown('</div>', unsafe_allow_html=True) 
-        
+        # Audio-guía Inclusiva
         if hablar:
-            gTTS(analisis.replace("|",""), lang='es').save("voz.mp3")
-            st.audio("voz.mp3")
+            gTTS(analisis_completo.replace("|", ""), lang=idioma_audio[:2]).save("final.mp3")
+            st.audio("final.mp3")
 
-        st.write("") 
-        
-        try:
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=10)
-            texto_pdf = limpiar_para_pdf(analisis)
-            pdf.multi_cell(0, 10, txt=texto_pdf)
-            pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
-            
-            st.download_button("📥 Descargar Acta PDF", pdf_bytes, "Acta_Reunion.pdf", "application/pdf")
-        except Exception as e:
-            st.download_button("📥 Descargar Respaldo (Texto)", analisis, "Acta.txt")
+        # Descargas
+        st.write("")
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=10)
+        # Limpieza básica para el PDF
+        pdf_txt = analisis_completo.encode('ascii', 'ignore').decode('ascii').replace('**', '').replace('###', '')
+        pdf.multi_cell(0, 10, txt=pdf_txt)
+        st.download_button("📥 Exportar Acta Profesional (PDF)", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Elite.pdf", "application/pdf")
