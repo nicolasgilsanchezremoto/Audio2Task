@@ -8,47 +8,28 @@ from pydub import AudioSegment
 from gtts import gTTS
 import re
 
-# 1. Configuración de la página con Estilo Animado
+# 1. Configuración y Estilo Animado (MODO ELITE)
 st.set_page_config(page_title="Audio2Task Pro Elite", page_icon="🚀", layout="wide")
 
-# CSS para Interfaz Entretenida y Animada
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;900&display=swap');
-    
-    html, body, [class*="css"]  {
-        font-family: 'Roboto', sans-serif;
-    }
-    
     .main {
         background: linear-gradient(135deg, #1e1e2f 0%, #2d3436 100%);
         color: #ffffff;
     }
-    
     .stButton>button {
         background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-        border: none;
-        color: white;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        border-radius: 50px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        border: none; color: white; font-weight: bold;
+        border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    
-    .stButton>button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(0,210,255,0.5);
-    }
-    
     .report-container {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
-        padding: 30px;
+        padding: 25px;
         border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.1);
-        margin-top: 20px;
+        color: white;
     }
-    
     .header-text {
         text-align: center;
         background: -webkit-linear-gradient(#00d2ff, #3a7bd5);
@@ -59,127 +40,95 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado Requerido
-st.markdown(f"<h3 style='text-align: center; color: #00d2ff;'>Sistema desarrollado por el aprendiz del tecnólogo ADSO</h3>", unsafe_allow_html=True)
-st.markdown(f"<h4 style='text-align: center; color: #ffffff;'>Nicolas Gil Sanchez | Ficha 3312447</h4>", unsafe_allow_html=True)
+# Encabezado del Autor
+st.markdown("<h3 style='text-align: center; color: #00d2ff; margin-bottom: 0;'>Sistema desarrollado por el aprendiz del tecnólogo ADSO</h3>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #ffffff; margin-top: 0;'>Nicolas Gil Sanchez | Ficha 3312447</h4>", unsafe_allow_html=True)
 st.markdown("<h1 class='header-text'>🎙️ AUDIO2TASK PRO ELITE</h1>", unsafe_allow_html=True)
 
-# 2. Funciones de Procesamiento de Audio (Largo y Multinivel)
-def convertir_a_wav(archivo_entrada):
-    """Convierte cualquier formato de audio a WAV compatible"""
-    audio = AudioSegment.from_file(archivo_entrada)
-    nombre_wav = "temp_converted.wav"
-    audio.export(nombre_wav, format="wav")
-    return nombre_wav
+# --- FUNCIONES TÉCNICAS ---
+def limpiar_para_pdf(texto):
+    texto_limpio = texto.encode('ascii', 'ignore').decode('ascii')
+    return texto_limpio.replace('###', '').replace('**', '').replace('|', ' ')
 
-def transcribir_audio_largo(ruta_audio):
-    """Divide audios largos en partes para evitar bloqueos"""
+def convertir_a_wav(archivo_entrada):
+    audio = AudioSegment.from_file(archivo_entrada)
+    ruta_temporal = "temp_audio_pro.wav"
+    audio.export(ruta_temporal, format="wav")
+    return ruta_temporal
+
+def transcribir_por_partes(ruta_wav):
     r = sr.Recognizer()
-    audio = AudioSegment.from_wav(ruta_audio)
-    
-    # Dividir en trozos de 60 segundos
-    duracion_chunk = 60 * 1000 
-    chunks = [audio[i:i + duracion_chunk] for i in range(0, len(audio), duracion_chunk)]
-    
+    audio = AudioSegment.from_wav(ruta_wav)
+    # Trozos de 60 segundos para no bloquear el sistema gratuito
+    duracion_ms = 60 * 1000 
+    chunks = [audio[i:i + duracion_ms] for i in range(0, len(audio), duracion_ms)]
     texto_completo = ""
-    progreso = st.progress(0)
-    
+    barra_progreso = st.progress(0)
     for idx, chunk in enumerate(chunks):
         chunk.export("chunk.wav", format="wav")
         with sr.AudioFile("chunk.wav") as source:
             data = r.record(source)
             try:
-                texto = r.recognize_google(data, language="es-ES")
-                texto_completo += texto + " "
-            except:
-                pass
-        progreso.progress((idx + 1) / len(chunks))
-    
+                texto_completo += r.recognize_google(data, language="es-ES") + " "
+            except: pass
+        barra_progreso.progress((idx + 1) / len(chunks))
     return texto_completo
 
-# 3. Función PDF Corregida (Usando Fuente Estándar)
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Acta de Tareas - Generado por Audio2Task', 0, 1, 'C')
-
-def generar_pdf_seguro(transcripcion, analitica):
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=10)
-    
-    # Limpieza extrema de caracteres no-latin1
-    def safe_text(t):
-        return t.encode('latin-1', 'replace').decode('latin-1')
-
-    pdf.cell(0, 10, "1. TRANSCRIPCION", ln=True)
-    pdf.multi_cell(0, 5, safe_text(transcripcion))
-    pdf.ln(10)
-    pdf.cell(0, 10, "2. ANALISIS DE IA", ln=True)
-    pdf.multi_cell(0, 5, safe_text(analitica))
-    
-    return pdf.output(dest='S').encode('latin-1')
-
-# 4. Interfaz de Usuario
+# --- INTERFAZ ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# Opciones de Inclusividad
 with st.sidebar:
-    st.header("♿ Inclusividad")
-    tamano = st.radio("Tamaño de texto:", ["Normal", "Grande", "Extra Grande"])
-    activar_voz = st.checkbox("Activar Lector de Resultados (Voz)")
-    
-    if tamano == "Grande": font_val = "22px"
-    elif tamano == "Extra Grande": font_val = "30px"
-    else: font_val = "18px"
-    
-    st.markdown(f"<style>p, li, span {{ font-size: {font_val} !important; }}</style>", unsafe_allow_html=True)
+    st.header("♿ Accesibilidad")
+    tamano = st.radio("Tamaño de letra:", ["Normal", "Grande", "Extra Grande"])
+    hablar = st.checkbox("Lector de voz (Inclusivo)")
+    font_size = "18px" if tamano == "Normal" else "24px" if tamano == "Grande" else "32px"
+    st.markdown(f"<style>p, span, li {{ font-size: {font_size} !important; }}</style>", unsafe_allow_html=True)
 
-col_carga, col_result = st.columns([1, 1.5])
+col_izq, col_der = st.columns([1, 1.5])
 
-with col_carga:
+with col_izq:
     st.subheader("📁 Cargar Reunión")
-    archivo_subido = st.file_uploader("Sube MP3, WAV, M4A, etc.", type=["mp3", "wav", "m4a", "ogg"])
-    
-    if archivo_subido:
-        st.audio(archivo_subido)
-        if st.button("🚀 ANALIZAR AHORA"):
-            with st.spinner("Procesando audio largo (esto puede tardar unos minutos)..."):
-                # Paso 1: Convertir
-                ruta_wav = convertir_a_wav(archivo_subido)
-                # Paso 2: Transcribir trozo a trozo
-                texto_total = transcribir_audio_largo(ruta_wav)
-                st.session_state['texto_voz'] = texto_total
+    archivo = st.file_uploader("Audio (MP3, WAV, M4A)", type=["mp3", "wav", "m4a"])
+    if archivo:
+        st.audio(archivo)
+        if st.button("🚀 INICIAR ANÁLISIS"):
+            with st.spinner("Procesando inteligencia artificial..."):
+                ruta = convertir_a_wav(archivo)
+                st.session_state['transcripcion'] = transcribir_por_partes(ruta)
 
-if 'texto_voz' in st.session_state:
-    with col_result:
+if 'transcripcion' in st.session_state:
+    with col_der:
+        # Aquí empieza el cuadro iluminado
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
+        
         st.subheader("📝 Transcripción Detectada")
-        st.write(st.session_state['texto_voz'])
+        st.write(st.session_state['transcripcion'])
         
-        # Procesar con IA
-        prompt = f"Analiza esta reunión: '{st.session_state['texto_voz']}'. Crea un Resumen Ejecutivo y una Tabla de Tareas (Responsable, Tarea, Plazo, Prioridad). Fecha hoy: 28 de Abril 2026."
-        
-        res = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile"
-        )
-        
-        analisis = res.choices[0].message.content
         st.markdown("---")
-        st.subheader("📋 Resultados de la IA")
-        st.markdown(analisis)
-        st.markdown('</div>', unsafe_allow_html=True)
         
-        # Función Inclusiva: Lector de Voz
-        if activar_voz:
-            tts = gTTS(analisis.replace("|", ""), lang='es')
-            tts.save("resumen.mp3")
-            st.audio("resumen.mp3")
+        # Llamada a la IA
+        prompt = f"Resume esta reunión y haz una tabla de tareas (Responsable, Tarea, Fecha, Prioridad): {st.session_state['transcripcion']}. Hoy es 28 de Abril 2026."
+        res = client.chat.completions.create(messages=[{"role":"user","content":prompt}], model="llama-3.3-70b-versatile")
+        analisis = res.choices[0].message.content
+        
+        st.subheader("📋 Plan de Acción")
+        st.markdown(analisis)
+        
+        st.markdown('</div>', unsafe_allow_html=True) # Aquí termina el cuadro iluminado
+        
+        # Lector de voz inclusivo
+        if hablar:
+            gTTS(analisis.replace("|",""), lang='es').save("voz.mp3")
+            st.audio("voz.mp3")
 
-        # Botón PDF Seguro
+        # Botón PDF (Corregido sin st.ln)
         try:
-            pdf_bytes = generar_pdf_seguro(st.session_state['texto_voz'], analisis)
-            st.download_button("📥 Descargar Acta en PDF", pdf_bytes, "Acta.pdf", "application/pdf")
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=10)
+            pdf.multi_cell(0, 10, txt=limpiar_para_pdf(analisis))
+            pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
+            st.write("") # Espacio en blanco correcto
+            st.download_button("📥 Descargar Acta PDF", pdf_bytes, "Acta_Reunion.pdf", "application/pdf")
         except:
-            st.download_button("📥 Descargar (Respaldo Texto)", analisis, "Acta.txt")
+            st.download_button("📥 Descargar Respaldo (Texto)", analisis, "Acta.txt")
