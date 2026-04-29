@@ -2,3 +2,4 @@ streamlit
 speechrecognition
 groq
 fpdf
+pip install streamlit speechrecognition groq fpdf pydub gTTS
