@@ -52,6 +52,7 @@ def limpiar_para_pdf(texto):
     return texto_limpio.replace('###', '').replace('**', '').replace('|', ' ')
 
 def convertir_a_wav(archivo_entrada):
+    # pydub detecta automáticamente si es mp3, wav, m4a o mp4
     audio = AudioSegment.from_file(archivo_entrada)
     ruta_temporal = "temp_audio_pro.wav"
     audio.export(ruta_temporal, format="wav")
@@ -75,7 +76,6 @@ def transcribir_por_partes(ruta_wav):
     return texto_completo
 
 # --- INTERFAZ ---
-# Usamos st.secrets para mayor seguridad en la web
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 with st.sidebar:
@@ -89,7 +89,8 @@ col_izq, col_der = st.columns([1, 1.5])
 
 with col_izq:
     st.subheader("📁 Cargar Reunión")
-    archivo = st.file_uploader("Audio (MP3, WAV, M4A)", type=["mp3", "wav", "m4a"])
+    # Agregamos "mp4" a los tipos aceptados
+    archivo = st.file_uploader("Sube audio o video (MP3, WAV, M4A, MP4)", type=["mp3", "wav", "m4a", "mp4"])
     if archivo:
         st.audio(archivo)
         if st.button("🚀 INICIAR ANÁLISIS"):
@@ -99,7 +100,6 @@ with col_izq:
 
 if 'transcripcion' in st.session_state:
     with col_der:
-        # INICIO DEL CONTENEDOR ILUMINADO
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
         
         st.subheader("📝 Transcripción Detectada")
@@ -107,7 +107,6 @@ if 'transcripcion' in st.session_state:
         
         st.markdown("---")
         
-        # LLAMADA A LA IA
         prompt = f"Resume esta reunión y haz una tabla de tareas (Responsable, Tarea, Fecha, Prioridad): {st.session_state['transcripcion']}. Hoy es 28 de Abril 2026."
         res = client.chat.completions.create(messages=[{"role":"user","content":prompt}], model="llama-3.3-70b-versatile")
         analisis = res.choices[0].message.content
@@ -116,26 +115,21 @@ if 'transcripcion' in st.session_state:
         st.markdown(analisis)
         
         st.markdown('</div>', unsafe_allow_html=True) 
-        # FIN DEL CONTENEDOR ILUMINADO
         
-        # Lector de voz inclusivo
         if hablar:
             gTTS(analisis.replace("|",""), lang='es').save("voz.mp3")
             st.audio("voz.mp3")
 
-        # SECCIÓN DE DESCARGA (SIN ERRORES)
-        st.write("") # Espacio correcto en Streamlit
+        st.write("") 
         
         try:
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=10)
-            # El texto del PDF debe estar limpio de caracteres extraños
             texto_pdf = limpiar_para_pdf(analisis)
             pdf.multi_cell(0, 10, txt=texto_pdf)
             pdf_bytes = pdf.output(dest='S').encode('latin-1', 'replace')
             
             st.download_button("📥 Descargar Acta PDF", pdf_bytes, "Acta_Reunion.pdf", "application/pdf")
         except Exception as e:
-            # Si el PDF falla por algún caracter, damos la opción de texto plano
             st.download_button("📥 Descargar Respaldo (Texto)", analisis, "Acta.txt")
