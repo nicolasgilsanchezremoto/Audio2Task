@@ -9,80 +9,74 @@ from gtts import gTTS
 import re
 
 # 1. Configuración de Pantalla
-st.set_page_config(page_title="Audio2Task Ultimate v3", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Audio2Task Ultimate v4", page_icon="🏢", layout="wide")
 
-# Barra Lateral: Estética y Accesibilidad
+# Selector de Tema
 with st.sidebar:
     st.header("🎨 Estética y Foco")
-    tema = st.selectbox("Ambiente:", ["Oficina Nocturna", "Modo Beige"])
+    tema = st.selectbox("Elige el ambiente:", ["Pizarra Nocturna", "Modo Beige"])
     st.markdown("---")
     hablar = st.checkbox("🔊 Activar Narrador IA")
 
-# Lógica de Colores de Alto Contraste (Cero Confusión Visual)
-if tema == "Oficina Nocturna":
-    bg_overlay = "rgba(0, 0, 0, 0.95)"  # Fondo casi opaco para resaltar el bloque
-    text_main = "#F0F0F0"
+# Lógica de Colores de Máxima Visibilidad
+if tema == "Pizarra Nocturna":
+    bg_app = "#0E1117"  # Color oscuro sólido de Streamlit
+    text_main = "#FFFFFF" # Blanco puro
     accent_color = "#00d2ff"
-    container_bg = "#0D0D0D"  # Bloque negro sólido
+    container_bg = "#1A1C24" # Bloque sólido para el texto
+    border_color = "#3a7bd5"
 else:
-    bg_overlay = "rgba(245, 245, 220, 0.98)"
-    text_main = "#121212"
+    bg_app = "#F5F5DC"  # Beige sólido
+    text_main = "#121212" # Negro profundo
     accent_color = "#d35400"
-    container_bg = "#FFFFFF"  # Bloque blanco sólido
+    container_bg = "#FFFFFF" # Blanco sólido
+    border_color = "#e67e22"
 
-# Estilo CSS Avanzado: Bloque Sólido y Difuminado Total
+# Estilo CSS de Alto Contraste (Sin distracciones de fondo)
 st.markdown(f"""
     <style>
     .stApp {{
-        background-image: url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069");
-        background-attachment: fixed;
-        background-size: cover;
+        background-color: {bg_app} !important;
     }}
-    /* Capa de difuminado sobre toda la app */
-    .main {{
-        background-color: {bg_overlay} !important;
-        backdrop-filter: blur(50px);
-        transition: all 0.5s ease;
-    }}
-    /* Bloque sólido para que el texto sea perfectamente visible */
     .report-container {{
         background-color: {container_bg} !important;
         padding: 40px;
         border-radius: 15px;
-        border-left: 10px solid {accent_color};
+        border: 2px solid {border_color};
         color: {text_main} !important;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        margin-top: 20px;
     }}
-    h1, h2, h3, h4, p, span, li {{
+    h1, h2, h3, h4, p, span, li, label {{
         color: {text_main} !important;
     }}
-    .header-tag {{
-        text-align: center;
-        background: {accent_color};
+    .author-header {{
+        background: linear-gradient(90deg, #00d2ff, #3a7bd5);
         color: white !important;
-        padding: 15px;
+        padding: 20px;
+        text-align: center;
         border-radius: 10px;
         font-weight: 900;
-        font-size: 1.5em;
+        font-size: 2em;
         margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,210,255,0.3);
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado solicitado
-st.markdown(f"<div class='header-tag'>SOFTWARE DESARROLLADO POR NICOLAS GIL SANCHEZ</div>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: center;'>Aprendiz ADSO | Ficha 3312447</h4>", unsafe_allow_html=True)
-st.markdown(f"<h1 style='text-align: center; color: {accent_color} !important;'>🏢 AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
+# Encabezado Solicitado
+st.markdown("<div class='author-header'>SOFTWARE DESARROLLADO POR NICOLAS GIL SANCHEZ</div>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #888;'>Aprendiz ADSO | Ficha 3312447</h4>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align: center; color: {accent_color} !important;'>🎙️ AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
 
 # --- FUNCIONES TÉCNICAS ---
-def procesar_audio_avanzado(archivo, lang_in):
+def procesar_audio(archivo, lang_in):
     audio = AudioSegment.from_file(archivo)
     audio.export("temp.wav", format="wav")
     r = sr.Recognizer()
     audio_wav = AudioSegment.from_wav("temp.wav")
     
-    # Procesamiento por bloques de 45 seg
+    # Procesar por partes para audios largos (40 min)
     duracion_ms = 45 * 1000 
     chunks = [audio_wav[i:i + duracion_ms] for i in range(0, len(audio_wav), duracion_ms)]
     texto_final = ""
@@ -104,52 +98,49 @@ client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 col1, col2 = st.columns([1, 1.8])
 
 with col1:
-    st.subheader("📥 Configuración")
-    archivo = st.file_uploader("Sube Audio o Video (MP3, WAV, MP4)", type=["mp3", "wav", "m4a", "mp4"])
+    st.subheader("📥 Carga y Configuración")
+    archivo = st.file_uploader("Sube Audio o Video (MP3, WAV, MP4, M4A)", type=["mp3", "wav", "m4a", "mp4"])
     
-    # Nuevo Selector de Traducción e Idioma
-    flujo = st.selectbox("🌐 Selecciona el flujo de idioma:", [
+    # NUEVO: Selector de Flujo Inteligente de Traducción
+    flujo = st.selectbox("🌐 Elige el modo de traducción:", [
         "Audio Español ➡️ Texto Español",
-        "Audio Inglés ➡️ Texto Español",
-        "Audio Español ➡️ Texto Inglés",
+        "Audio Inglés ➡️ Texto Español (Traducir)",
         "Audio Inglés ➡️ Texto Inglés",
+        "Audio Español ➡️ Texto Inglés (Traducir)",
         "Audio Polaco ➡️ Texto Polaco",
-        "Audio Polaco ➡️ Texto Español",
-        "Audio Español ➡️ Texto Polaco"
+        "Audio Polaco ➡️ Texto Español (Traducir)"
     ])
     
-    # Mapeo de lógica de idiomas
-    mapa = {
+    mapa_idiomas = {
         "Audio Español ➡️ Texto Español": ("es-ES", "español"),
-        "Audio Inglés ➡️ Texto Español": ("en-US", "español"),
-        "Audio Español ➡️ Texto Inglés": ("es-ES", "inglés"),
+        "Audio Inglés ➡️ Texto Español (Traducir)": ("en-US", "español"),
         "Audio Inglés ➡️ Texto Inglés": ("en-US", "inglés"),
+        "Audio Español ➡️ Texto Inglés (Traducir)": ("es-ES", "inglés"),
         "Audio Polaco ➡️ Texto Polaco": ("pl-PL", "polaco"),
-        "Audio Polaco ➡️ Texto Español": ("pl-PL", "español"),
-        "Audio Español ➡️ Texto Polaco": ("es-ES", "polaco")
+        "Audio Polaco ➡️ Texto Español (Traducir)": ("pl-PL", "español")
     }
-    lang_in, lang_out = mapa[flujo]
+    idioma_in, idioma_out = mapa_idiomas[flujo]
 
     if archivo:
         st.audio(archivo)
-        if st.button("🚀 INICIAR ANÁLISIS"):
-            with st.spinner(f"Escuchando audio en {lang_in}..."):
-                st.session_state['texto_raw'] = procesar_audio_avanzado(archivo, lang_in)
+        if st.button("🚀 INICIAR PROCESAMIENTO"):
+            with st.spinner(f"Escuchando audio en {idioma_in}..."):
+                st.session_state['texto_raw'] = procesar_audio(archivo, idioma_in)
 
 if 'texto_raw' in st.session_state:
     with col2:
-        # BLOQUE SÓLIDO PARA MÁXIMA VISIBILIDAD
+        # BLOQUE SÓLIDO PARA MÁXIMA LECTURA
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
         st.subheader("📋 Resultados del Análisis Profesional")
         
         prompt = f"""
-        Analiza este texto: '{st.session_state['texto_raw']}'
-        IDIOMA DE RESPUESTA: Responde OBLIGATORIAMENTE en idioma {lang_out.upper()}.
+        Analiza el texto: '{st.session_state['texto_raw']}'
+        IDIOMA DE RESPUESTA: Debes responder en {idioma_out.upper()}.
         
-        ESTRUCTURA:
-        1. TRANSCRIPCIÓN LIMPIA (Sin muletillas).
+        ENTREGA:
+        1. TRANSCRIPCIÓN LIMPIA (Sin errores).
         2. RESUMEN EJECUTIVO (Puntos clave).
-        3. TABLA DE TAREAS (Responsable, Tarea, Prioridad, Plazo).
+        3. TABLA DE TAREAS (Responsable, Tarea, Prioridad, Fecha).
         4. ANÁLISIS DE SENTIMIENTO (Tono de la reunión).
         """
         
@@ -158,16 +149,16 @@ if 'texto_raw' in st.session_state:
         st.markdown(analisis)
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Funciones de Valor Añadido
+        # Herramientas Útiles
         if hablar:
-            gTTS(analisis.replace("|",""), lang=lang_in[:2]).save("voz.mp3")
+            gTTS(analisis.replace("|",""), lang=idioma_in[:2]).save("voz.mp3")
             st.audio("voz.mp3")
 
         st.write("")
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=10)
-        # Limpieza para el PDF
+        # Limpieza para exportación
         pdf_txt = analisis.encode('ascii', 'ignore').decode('ascii').replace('**', '').replace('###', '')
         pdf.multi_cell(0, 10, txt=pdf_txt)
-        st.download_button("📥 Descargar Acta (PDF)", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Audio2Task.pdf", "application/pdf")
+        st.download_button("📥 Descargar Acta en PDF", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Audio2Task.pdf", "application/pdf")
