@@ -11,24 +11,24 @@ import re
 # 1. Configuración de Pantalla
 st.set_page_config(page_title="Audio2Task Ultimate v2", page_icon="🏢", layout="wide")
 
-# Selector de Tema en la barra lateral para no estorbar
+# Selector de Tema
 with st.sidebar:
     st.header("🎨 Personalización")
     tema = st.selectbox("Elige el ambiente:", ["Oficina Nocturna", "Modo Beige"])
 
-# Lógica de Colores Dinámica (Corregida)
+# Lógica de Colores Mejorada para Legibilidad Extrema
 if tema == "Oficina Nocturna":
-    bg_overlay = "rgba(0, 0, 0, 0.75)"  # Fondo más oscuro para contraste
+    bg_overlay = "rgba(0, 0, 0, 0.85)"  # Mucho más oscuro
     text_main = "#ffffff"
     accent_color = "#00d2ff"
-    container_color = "rgba(20, 20, 20, 0.85)"
+    container_bg = "rgba(10, 10, 15, 0.95)" # Casi sólido para leer bien
 else:
-    bg_overlay = "rgba(245, 245, 220, 0.85)"
-    text_main = "#2d3436"
+    bg_overlay = "rgba(245, 245, 220, 0.92)" # Beige más denso
+    text_main = "#1a1a1a"
     accent_color = "#d35400"
-    container_color = "rgba(255, 255, 255, 0.9)"
+    container_bg = "rgba(255, 255, 255, 0.95)"
 
-# Estilo CSS Avanzado
+# Estilo CSS con Enfoque en Legibilidad
 st.markdown(f"""
     <style>
     .stApp {{
@@ -40,37 +40,39 @@ st.markdown(f"""
         background-color: {bg_overlay};
         color: {text_main};
         padding: 30px;
-        border-radius: 20px;
+        transition: all 0.5s ease;
     }}
     .report-container {{
-        background: {container_color};
-        backdrop-filter: blur(20px);
-        padding: 35px;
-        border-radius: 30px;
+        background: {container_bg};
+        backdrop-filter: blur(25px); /* Desenfoque profundo */
+        padding: 40px;
+        border-radius: 25px;
         border: 2px solid {accent_color};
         color: {text_main};
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        line-height: 1.6; /* Mejor espaciado entre líneas */
     }}
     .header-text {{
         text-align: center;
         background: linear-gradient(90deg, #00d2ff, #3a7bd5);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 3.5em;
+        font-size: 3.2em;
         font-weight: 900;
-        margin-bottom: 0px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }}
     .sub-header {{
         text-align: center;
         color: {accent_color};
-        font-size: 1.8em;
+        font-size: 1.6em;
         font-weight: bold;
-        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado solicitado con nombre y ficha
+# Encabezado Personalizado
 st.markdown(f"<div class='sub-header'>Software desarrollado por Nicolas Gil Sanchez</div>", unsafe_allow_html=True)
 st.markdown("<h4 style='text-align: center; color: gray;'>Aprendiz ADSO | Ficha 3312447</h4>", unsafe_allow_html=True)
 st.markdown("<h1 class='header-text'>🏢 AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
@@ -101,34 +103,33 @@ def transcribir_avanzado(archivo, lang):
 # --- INTERFAZ ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-col1, col2 = st.columns([1, 1.5])
+col1, col2 = st.columns([1, 1.6])
 
 with col1:
     st.subheader("📂 Entrada de Medios")
     archivo = st.file_uploader("Sube Audio o Video (MP3, WAV, MP4)", type=["mp3", "wav", "m4a", "mp4"])
-    
-    # Selector de idioma justo al lado de la entrada
     idioma_audio = st.selectbox("🌐 Idioma a procesar:", ["es-ES", "en-US", "fr-FR", "de-DE", "it-IT", "pt-BR"])
     
     if archivo:
         st.audio(archivo)
         if st.button("🚀 INICIAR ANÁLISIS"):
-            with st.spinner(f"Analizando profundamente en {idioma_audio}..."):
+            with st.spinner("Procesando inteligencia..."):
                 st.session_state['texto'] = transcribir_avanzado(archivo, idioma_audio)
 
 if 'texto' in st.session_state:
     with col2:
+        # Aquí el contenedor ahora es mucho más legible
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
-        st.subheader("📋 Resultados del Análisis")
+        st.subheader("📋 Resultados del Análisis Profesional")
         
         prompt_pro = f"""
         Actúa como Consultor Senior. Analiza: '{st.session_state['texto']}'
-        1. TRANSCRIPCIÓN LIMPIA PROFESIONAL.
+        1. TRANSCRIPCIÓN LIMPIA.
         2. RESUMEN EJECUTIVO.
         3. TABLA DE TAREAS (Responsable, Tarea, Fecha, Prioridad).
         4. DECISIONES Y ACUERDOS.
-        5. ANÁLISIS DE SENTIMIENTO DE LA REUNIÓN.
-        Responde en el idioma: {idioma_audio}.
+        5. ANÁLISIS DE SENTIMIENTO.
+        Responde en {idioma_audio}.
         """
         
         res = client.chat.completions.create(messages=[{"role":"user","content":prompt_pro}], model="llama-3.3-70b-versatile")
@@ -136,21 +137,18 @@ if 'texto' in st.session_state:
         st.markdown(analisis_completo)
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Inclusividad en barra lateral para no romper diseño
         with st.sidebar:
             st.markdown("---")
-            st.header("♿ Accesibilidad")
             hablar = st.checkbox("Activar Narrador")
         
         if hablar:
             gTTS(analisis_completo.replace("|", ""), lang=idioma_audio[:2]).save("final.mp3")
             st.audio("final.mp3")
 
-        # Exportación PDF
         st.write("")
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=10)
         pdf_txt = analisis_completo.encode('ascii', 'ignore').decode('ascii').replace('**', '').replace('###', '')
         pdf.multi_cell(0, 10, txt=pdf_txt)
-        st.download_button("📥 Descargar Acta PDF Profesional", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Audio2Task.pdf", "application/pdf")
+        st.download_button("📥 Descargar Acta PDF", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Audio2Task.pdf", "application/pdf")
