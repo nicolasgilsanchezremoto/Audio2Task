@@ -9,28 +9,29 @@ from gtts import gTTS
 import re
 
 # 1. Configuración de Pantalla
-st.set_page_config(page_title="Audio2Task Ultimate", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Audio2Task Ultimate v3", page_icon="🏢", layout="wide")
 
-# Selector de Tema
+# Barra Lateral: Configuración Visual y Accesibilidad
 with st.sidebar:
     st.header("🎨 Estética y Foco")
     tema = st.selectbox("Ambiente:", ["Oficina Nocturna", "Modo Beige"])
     st.markdown("---")
-    st.info("💡 Consejo: Usa el Modo Beige si prefieres texto oscuro sobre fondo claro.")
+    hablar = st.checkbox("🔊 Activar Narrador IA")
+    st.info("💡 El fondo se difuminará automáticamente al procesar para mejorar la lectura.")
 
-# Lógica de Colores de Alto Contraste
+# Lógica de Colores de Alto Contraste (Cero Confusión Visual)
 if tema == "Oficina Nocturna":
-    bg_overlay = "rgba(0, 0, 0, 0.92)" # Casi negro para eliminar distracciones
-    text_main = "#ECECEC"
+    bg_overlay = "rgba(0, 0, 0, 0.95)" # Casi opaco para resaltar texto
+    text_main = "#F0F0F0"
     accent_color = "#00d2ff"
-    container_bg = "#0A0A0A" # Fondo sólido para el texto
+    container_bg = "#0D0D0D" # Fondo sólido negro
 else:
-    bg_overlay = "rgba(245, 245, 220, 0.95)"
-    text_main = "#0D0D0D"
+    bg_overlay = "rgba(245, 245, 220, 0.98)"
+    text_main = "#121212"
     accent_color = "#d35400"
-    container_bg = "#FFFFFF"
+    container_bg = "#FFFFFF" # Fondo sólido blanco
 
-# Estilo CSS con Enfoque en Legibilidad y Difuminado
+# Estilo CSS Avanzado: Corrección de Difuminado y Legibilidad
 st.markdown(f"""
     <style>
     .stApp {{
@@ -39,56 +40,49 @@ st.markdown(f"""
         background-size: cover;
     }}
     .main {{
-        background-color: {bg_overlay};
-        color: {text_main};
-        padding: 40px;
-        backdrop-filter: blur(40px); /* Difuminado extremo para concentración */
+        background-color: {bg_overlay} !important;
+        backdrop-filter: blur(50px); /* Difuminado máximo */
+        transition: all 0.5s ease;
     }}
     .report-container {{
-        background: {container_bg};
-        padding: 45px;
-        border-radius: 20px;
-        border: 3px solid {accent_color};
-        color: {text_main};
-        box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-        font-size: 1.1em;
+        background-color: {container_bg} !important;
+        padding: 40px;
+        border-radius: 15px;
+        border-left: 10px solid {accent_color};
+        color: {text_main} !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }}
-    .header-title {{
-        text-align: center;
-        color: {accent_color};
-        font-size: 2.8em;
-        font-weight: 900;
-        text-transform: uppercase;
-        margin-bottom: 5px;
+    h1, h2, h3, p, span, li {{
+        color: {text_main} !important;
     }}
-    .author-badge {{
+    .header-tag {{
         text-align: center;
         background: {accent_color};
-        color: white;
-        padding: 10px;
+        color: white !important;
+        padding: 15px;
         border-radius: 10px;
-        font-weight: bold;
-        font-size: 1.4em;
-        margin-bottom: 20px;
+        font-weight: 900;
+        font-size: 1.5em;
+        margin-bottom: 25px;
+        text-transform: uppercase;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# Encabezado con mayor visibilidad
-st.markdown(f"<div class='author-badge'>SOFTWARE DESARROLLADO POR NICOLAS GIL SANCHEZ</div>", unsafe_allow_html=True)
-st.markdown("<h5 style='text-align: center; color: gray;'>Aprendiz ADSO | Ficha 3312447</h5>", unsafe_allow_html=True)
-st.markdown("<h1 class='header-title'>AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
+# Encabezado con tu nombre (Visible y Grande)
+st.markdown(f"<div class='header-tag'>Software desarrollado por Nicolas Gil Sanchez</div>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #888;'>Aprendiz ADSO | Ficha 3312447</h4>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align: center; color: {accent_color} !important;'>🏢 AUDIO2TASK ULTIMATE</h1>", unsafe_allow_html=True)
 
-# --- LÓGICA TÉCNICA ---
-def procesar_audio(archivo, lang_audio):
+# --- MOTOR TÉCNICO ---
+def procesar_audio_avanzado(archivo, lang_in):
     audio = AudioSegment.from_file(archivo)
-    ruta_wav = "temp.wav"
-    audio.export(ruta_wav, format="wav")
-    
+    audio.export("temp.wav", format="wav")
     r = sr.Recognizer()
-    audio_wav = AudioSegment.from_wav(ruta_wav)
-    # Fragmentar para mayor eficiencia en archivos de 40min
-    duracion_ms = 40 * 1000 
+    audio_wav = AudioSegment.from_wav("temp.wav")
+    
+    # Procesamiento por bloques de 45 seg para eficiencia
+    duracion_ms = 45 * 1000 
     chunks = [audio_wav[i:i + duracion_ms] for i in range(0, len(audio_wav), duracion_ms)]
     texto_final = ""
     
@@ -98,59 +92,64 @@ def procesar_audio(archivo, lang_audio):
         with sr.AudioFile("chunk.wav") as source:
             data = r.record(source)
             try:
-                texto_final += r.recognize_google(data, language=lang_audio) + " "
+                texto_final += r.recognize_google(data, language=lang_in) + " "
             except: pass
         progreso.progress((idx + 1) / len(chunks))
     return texto_final
 
-# --- INTERFAZ ---
+# --- INTERFAZ DE USUARIO ---
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 col1, col2 = st.columns([1, 1.8])
 
 with col1:
-    st.subheader("📥 Configuración de Entrada")
+    st.subheader("📥 Configuración de Procesamiento")
     archivo = st.file_uploader("Sube Audio o Video (MP3, WAV, MP4, M4A)", type=["mp3", "wav", "m4a", "mp4"])
     
-    # Selector de Flujo de Idioma
-    modo = st.selectbox("🌐 Elige el flujo de trabajo:", [
+    # Selector de Flujo de Idioma Inteligente
+    flujo = st.selectbox("🌐 Selecciona el flujo de traducción:", [
         "Audio Español ➡️ Texto Español",
-        "Audio Inglés ➡️ Texto Español (Traducción)",
+        "Audio Inglés ➡️ Texto Español",
+        "Audio Español ➡️ Texto Inglés",
         "Audio Inglés ➡️ Texto Inglés",
-        "Audio Español ➡️ Texto Inglés (Traducción)"
+        "Audio Polaco ➡️ Texto Polaco",
+        "Audio Polaco ➡️ Texto Español",
+        "Audio Español ➡️ Texto Polaco"
     ])
     
-    # Mapeo de idiomas según la elección
-    lang_map = {
+    # Mapeo de lógica
+    mapa = {
         "Audio Español ➡️ Texto Español": ("es-ES", "español"),
-        "Audio Inglés ➡️ Texto Español (Traducción)": ("en-US", "español"),
+        "Audio Inglés ➡️ Texto Español": ("en-US", "español"),
+        "Audio Español ➡️ Texto Inglés": ("es-ES", "inglés"),
         "Audio Inglés ➡️ Texto Inglés": ("en-US", "inglés"),
-        "Audio Español ➡️ Texto Inglés (Traducción)": ("es-ES", "inglés")
+        "Audio Polaco ➡️ Texto Polaco": ("pl-PL", "polaco"),
+        "Audio Polaco ➡️ Texto Español": ("pl-PL", "español"),
+        "Audio Español ➡️ Texto Polaco": ("es-ES", "polaco")
     }
-    lang_audio, lang_target = lang_map[modo]
+    lang_in, lang_out = mapa[flujo]
 
     if archivo:
         st.audio(archivo)
-        if st.button("🚀 INICIAR PROCESAMIENTO"):
-            with st.spinner("Analizando y traduciendo..."):
-                st.session_state['texto_crudo'] = procesar_audio(archivo, lang_audio)
+        if st.button("🚀 INICIAR ANÁLISIS"):
+            with st.spinner(f"Analizando audio en {lang_in}..."):
+                st.session_state['texto_raw'] = procesar_audio_avanzado(archivo, lang_in)
 
-if 'texto_crudo' in st.session_state:
+if 'texto_raw' in st.session_state:
     with col2:
+        # CONTENEDOR DE RESULTADOS SÓLIDO (Sin transparencia molesta)
         st.markdown('<div class="report-container">', unsafe_allow_html=True)
-        st.subheader("📝 Resultados Profesionales")
+        st.subheader("📋 Resultados del Análisis Profesional")
         
         prompt = f"""
-        Actúa como un experto lingüista y gestor de proyectos. 
-        Analiza el siguiente texto: '{st.session_state['texto_crudo']}'
+        Analiza profundamente este texto: '{st.session_state['texto_raw']}'
+        IDIOMA DE RESPUESTA: Debes responder OBLIGATORIAMENTE en idioma {lang_out.upper()}.
         
-        INSTRUCCIÓN DE IDIOMA: Debes entregar todo el análisis en {lang_target.upper()}.
-        
-        CONTENIDO A ENTREGAR:
-        1. TRANSCRIPCIÓN LIMPIA Y CORREGIDA.
-        2. RESUMEN EJECUTIVO (Puntos principales).
-        3. TABLA DE TAREAS (Responsable, Tarea, Fecha Límite, Prioridad).
-        4. ANÁLISIS DE SENTIMIENTO Y TONO.
+        ESTRUCTURA:
+        1. TRANSCRIPCIÓN LIMPIA (Sin muletillas).
+        2. RESUMEN EJECUTIVO (Puntos clave).
+        3. MATRIZ DE TAREAS (Responsable, Tarea, Prioridad, Plazo sugerido).
+        4. ANÁLISIS DE SENTIMIENTO (Tono de la conversación).
         """
         
         res = client.chat.completions.create(messages=[{"role":"user","content":prompt}], model="llama-3.3-70b-versatile")
@@ -158,20 +157,15 @@ if 'texto_crudo' in st.session_state:
         st.markdown(analisis)
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Funciones Útiles Adicionales
-        st.write("")
-        col_pdf, col_voice = st.columns(2)
-        
-        with col_voice:
-            if st.checkbox("🔊 Narrar resultados"):
-                gTTS(analisis.replace("|",""), lang=lang_audio[:2]).save("v.mp3")
-                st.audio("v.mp3")
+        # Herramientas de Valor Añadido
+        if hablar:
+            gTTS(analisis.replace("|",""), lang=lang_in[:2]).save("voz.mp3")
+            st.audio("voz.mp3")
 
-        with col_pdf:
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=10)
-            # Limpiar caracteres especiales para el PDF
-            clean_txt = analisis.encode('ascii', 'ignore').decode('ascii').replace('**', '').replace('###', '')
-            pdf.multi_cell(0, 10, txt=clean_txt)
-            st.download_button("📥 Descargar Acta (PDF)", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta.pdf", "application/pdf")
+        st.write("")
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=10)
+        pdf_txt = analisis.encode('ascii', 'ignore').decode('ascii').replace('**', '').replace('###', '')
+        pdf.multi_cell(0, 10, txt=pdf_txt)
+        st.download_button("📥 Descargar Acta (PDF)", pdf.output(dest='S').encode('latin-1', 'replace'), "Acta_Audio2Task.pdf", "application/pdf")
